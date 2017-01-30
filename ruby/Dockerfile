@@ -1,25 +1,23 @@
-FROM oberthur/docker-ubuntu-java:jdk8_8.112.15
+FROM oberthur/docker-ubuntu-java:jdk8_8.121.13
 
 ENV SWARM_VERSION=2.2 \
   ANT_VERSION=1.9.4 \
   ANT_HOME=/usr/share/ant \
   PHANTOMJS_VERSION=2.1.1 \
+	DOCKER_PATH=/opt/docker/bin \
   PHANTOMJS_PLATFORM=linux-x86_64
 
 ENV PATH="$PATH:$DOCKER_PATH:$HOME/.rbenv/bin"
 
 # Add external repository
 RUN add-apt-repository -y ppa:brightbox/ruby-ng-experimental
-
-RUN curl -Lo /opt/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar http://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/${SWARM_VERSION}/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar \
-
-  && echo '#!/bin/bash\n\nexec java -jar /opt/swarm-client-$SWARM_VERSION-jar-with-dependencies.jar -disableClientsUniqueId -username $JENKINS_USERNAME -password $JENKINS_PASSWORD -mode ${JENKINS_MODE:-exclusive} -name $JENKINS_SLAVE_NAME -executors ${JENKINS_EXEC_NR:-1} -master ${JENKINS_URL:-127.0.0.1} -fsroot $JENKINS_FS_ROOT -labels "${JENKINS_LABELS:-swarm}"' > /usr/bin/swarm_slave.sh \
-  && chmod +x /usr/bin/swarm_slave.sh \
-  && mkdir -p /etc/supervisor/conf.d \
-  && echo "[program:swarm-slave]\ncommand=/usr/bin/swarm_slave.sh\nuser=root" > /etc/supervisor/conf.d/supervisor.conf \
+RUN curl -o /opt/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar http://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/${SWARM_VERSION}/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar
+COPY swarm_slave.sh /usr/bin/swarm_slave.sh
+RUN chmod +x /usr/bin/swarm_slave.sh && mkdir -p /etc/supervisor/conf.d
+COPY supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
   # install ant
-  && curl -fsSL http://archive.apache.org/dist/ant/binaries/apache-ant-$ANT_VERSION-bin.tar.gz | tar xzf - -C /usr/share \
+RUN curl -fsSL http://archive.apache.org/dist/ant/binaries/apache-ant-$ANT_VERSION-bin.tar.gz | tar xzf - -C /usr/share \
   && mv /usr/share/apache-ant-$ANT_VERSION /usr/share/ant \
   && ln -s /usr/share/ant/bin/ant /usr/bin/ant \
 
@@ -42,10 +40,6 @@ RUN curl -Lo /opt/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar http:/
   && mkdir -p $DOCKER_PATH \
   && apt-get install -y iptables kmod libnfnetlink0 module-init-tools \
 
-  # clean all cache to clean space
-  && rm -rf /var/lib/apt/lists/* \
-  && apt-get clean \
-  && apt-get -y autoremove \
 
   # install rbenv and ruby-build to manage ruby versions
   && git clone https://github.com/rbenv/rbenv.git ~/.rbenv \
@@ -54,6 +48,12 @@ RUN curl -Lo /opt/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar http:/
   && echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh \
   && echo 'eval "$(rbenv init -)"' >> .bashrc \
   && echo 'gem: --no-rdoc --no-ri' >> /.gemrc \
-  && echo 'bundler\nrake' > ~/.rbenv/default-gems
+  && echo 'bundler\nrake' > ~/.rbenv/default-gems \
 
-ENTRYPOINT [ "/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf" ]
+	# clean all cache to clean space
+	&& apt-get purge -y unzip \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& apt-get clean \
+	&& apt-get -y autoremove
+
+ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]

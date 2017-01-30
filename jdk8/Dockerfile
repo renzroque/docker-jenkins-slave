@@ -1,4 +1,4 @@
-FROM oberthur/docker-ubuntu-java:jdk8_8.112.15
+FROM oberthur/docker-ubuntu-java:jdk8_8.121.13
 
 ENV SWARM_VERSION=2.2 \
   GRADLE_VERSION=2.14.1 \
@@ -15,15 +15,13 @@ ENV SWARM_VERSION=2.2 \
 
 ENV PATH="$PATH:$DOCKER_PATH"
 
-RUN curl -o /opt/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar http://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/${SWARM_VERSION}/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar \
-  && echo '#!/bin/bash\n\nexec java -jar /opt/swarm-client-$SWARM_VERSION-jar-with-dependencies.jar -disableClientsUniqueId -username $JENKINS_USERNAME -password $JENKINS_PASSWORD -mode ${JENKINS_MODE:-exclusive} -name $JENKINS_SLAVE_NAME -executors ${JENKINS_EXEC_NR:-1} -master ${JENKINS_URL:-127.0.0.1} -fsroot $JENKINS_FS_ROOT -labels "${JENKINS_LABELS:-swarm}"' > /usr/bin/swarm_slave.sh \
-  && chmod +x /usr/bin/swarm_slave.sh \
-  && mkdir -p /etc/supervisor/conf.d \
-  && echo "[program:swarm-slave]\ncommand=/usr/bin/swarm_slave.sh\nuser=root\n\n[program:docker-in-docker]\ncommand=$DOCKER_PATH/docker-in-docker.sh\nuser=root" > /etc/supervisor/conf.d/supervisor.conf \
+RUN curl -o /opt/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar http://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/${SWARM_VERSION}/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar
+COPY swarm_slave.sh /usr/bin/swarm_slave.sh
+RUN chmod +x /usr/bin/swarm_slave.sh && mkdir -p /etc/supervisor/conf.d
+COPY supervisor.conf /etc/supervisor/conf.d/supervisor.conf
+COPY cassandra.sources.list /etc/apt/sources.list.d/cassandra.sources.list
 
-  # add cassandra repo
-  && echo "deb http://debian.datastax.com/community stable main" | tee -a /etc/apt/sources.list.d/cassandra.sources.list \
-  && curl -L http://debian.datastax.com/debian/repo_key | apt-key add - \
+RUN curl -L http://debian.datastax.com/debian/repo_key | apt-key add - \
 
   # Make sure the package repository is up to date.
   && apt-get update \
@@ -65,17 +63,21 @@ RUN curl -o /opt/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar http://
   && mv /usr/share/apache-ant-$ANT_VERSION /usr/share/ant \
   && ln -s /usr/share/ant/bin/ant /usr/bin/ant \
 
-  # install sbt
+	# install sbt
   && mkdir -p $SBT_HOME \
-  && curl -L https://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/$SBT_VERSION/sbt-launch.jar > $SBT_HOME/sbt-launch.jar \
-  && echo '#!/bin/bash\njava $SBT_OPTS -jar $SBT_HOME/sbt-launch.jar "$@"' > /usr/bin/sbt \
-  && chmod a+x /usr/bin/sbt \
+  && curl -L https://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/$SBT_VERSION/sbt-launch.jar > $SBT_HOME/sbt-launch.jar
+  COPY sbt /usr/bin/sbt
+  RUN chmod a+x /usr/bin/sbt \
   && sbt exit \
   && rm -fr /tmp/* \
 
   # install git flow
-  && wget --no-check-certificate -q https://raw.github.com/petervanderdoes/gitflow-avh/develop/contrib/gitflow-installer.sh \
-  && bash gitflow-installer.sh install stable \
-  && rm gitflow-installer.sh
+	&& apt-get update && apt-get install -y git-flow \
 
-ENTRYPOINT [ "/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf" ]
+	# clean all cache to clean space
+	&& apt-get purge -y unzip \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& apt-get clean \
+	&& apt-get -y autoremove
+
+ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
