@@ -25,7 +25,7 @@ RUN curl -L http://debian.datastax.com/debian/repo_key | apt-key add - \
 
   # Make sure the package repository is up to date.
   && apt-get update \
-  && apt-get install -y git supervisor openssh-client zip unzip wget bzip2 nodejs npm gitstats python-yaml python-jinja2 cassandra-tools rsync  \
+  && apt-get install -y git supervisor openssh-client zip unzip wget bzip2 nodejs npm gitstats python-yaml python-jinja2 cassandra-tools rsync mariadb-client  \
   && npm install npm -g \
   && npm install -g bower \
   && ln -s /usr/bin/nodejs /usr/bin/node \
