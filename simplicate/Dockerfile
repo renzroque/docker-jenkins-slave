@@ -2,9 +2,10 @@ FROM otomato/ubuntu32:14.04
 
 RUN locale-gen en_US.UTF-8
 
-ENV SWARM_VERSION=2.2 \
+ENV SWARM_VERSION=2.3 \
   JAVA_HOME=/usr/lib/jvm/java-7-oracle \
-  ANT_VERSION=1.9.4 \
+	JAVA_VERSION=jdk7_7.80.15\
+  ANT_VERSION=1.9.8 \
   ANT_HOME=/usr/share/ant \
   PHANTOMJS_VERSION=2.1.1 \
   PHANTOMJS_PLATFORM=linux-x86_64 \

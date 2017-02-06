@@ -1,10 +1,10 @@
 FROM oberthur/docker-ubuntu-java:jdk8_8.121.13
 
-ENV SWARM_VERSION=2.2 \
-  GRADLE_VERSION=2.14.1 \
-  SBT_VERSION=0.13.12 \
+ENV SWARM_VERSION=2.3 \
+  GRADLE_VERSION=3.3 \
+  SBT_VERSION=0.13.13 \
   MAVEN_VERSION=3.3.9 \
-  ANT_VERSION=1.9.6 \
+  ANT_VERSION=1.9.8 \
   ANT_HOME=/usr/share/ant \
   GRADLE_HOME=/usr/share/gradle \
   SBT_HOME=/usr/share/sbt \

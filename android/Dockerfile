@@ -1,7 +1,7 @@
 FROM oberthur/docker-ubuntu-java:jdk8_8.121.13
 
-ENV SWARM_VERSION=2.2 \
-  GRADLE_VERSION=2.2 \
+ENV SWARM_VERSION=2.3 \
+  GRADLE_VERSION=3.3 \
   MAVEN_VERSION=3.3.9 \
   ANDROID_VERSION=25 \
   ANDROID_SDK_VERSION=24.4.1 \
@@ -14,7 +14,7 @@ ENV PATH $GRADLE_HOME/bin:$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools
 RUN curl -o /opt/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar http://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/${SWARM_VERSION}/swarm-client-${SWARM_VERSION}-jar-with-dependencies.jar
 COPY swarm_slave.sh /usr/bin/swarm_slave.sh
 RUN chmod +x /usr/bin/swarm_slave.sh && mkdir -p /etc/supervisor/conf.d
-COPY supervisor.conf /etc/supervisor/conf.d/supervisor.conf 
+COPY supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
   # Make sure the package repository is up to date.
 RUN apt-get update \
